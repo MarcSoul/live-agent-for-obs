@@ -74,7 +74,7 @@ export const server = createServer(async (req,res) => {
       let image;
       if (input.inspectPreview === true) {
         if (!state.studio || !state.preview) throw new Error('Activa Modo Estudio y selecciona la escena que quieres revisar en Previo.');
-        const {imageData} = await obs.request('GetSourceScreenshot',{sourceName:state.preview,imageFormat:'jpg',imageWidth:960,imageCompressionQuality:85});
+        const {imageData} = await obs.request('GetSourceScreenshot',{sourceName:state.preview,imageFormat:'jpeg',imageWidth:960,imageCompressionQuality:85});
         if (typeof imageData !== 'string' || !imageData.startsWith('data:image/jpeg;base64,')) throw new Error('OBS no devolvió una captura JPEG válida.');
         if ((await obs.request('GetCurrentPreviewScene')).sceneName !== state.preview ||
             (await obs.request('GetSceneCollectionList')).currentSceneCollectionName !== state.collection)
