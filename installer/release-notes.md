@@ -1,3 +1,5 @@
+Grafismos animados por chat: cortinillas con cartel y cuenta atrás, pantallas de espera y tercios inferiores. Vista previa en el panel, instalación en OBS como una sola fuente, edición por chat y restauración de la versión anterior. Windows x64 con OBS 33.
+
 Novedad: visión automática del previo durante el chat y revisión visual después de aplicar cambios.
 
 Novedad: revisión visual del previo con una captura de OBS y propuestas de corrección.

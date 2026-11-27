@@ -1,3 +1,4 @@
+import {readGraphic} from './graphics.mjs';
 import { createHash, randomUUID } from 'node:crypto';
 
 const hash = text => createHash('sha256').update(text).digest('base64');
@@ -48,8 +49,8 @@ export async function connect(password) {
 }
 
 export async function inventory(obs) {
-  const [list, mode, collection, inputs, unversioned, inputKinds] = await Promise.all([
-    obs.request('GetSceneList'), obs.request('GetStudioModeEnabled'), obs.request('GetSceneCollectionList'), obs.request('GetInputList'), obs.request('GetInputList',{unversioned:true}), obs.request('GetInputKindList')
+  const [list, mode, collection, inputs, unversioned, inputKinds, video] = await Promise.all([
+    obs.request('GetSceneList'), obs.request('GetStudioModeEnabled'), obs.request('GetSceneCollectionList'), obs.request('GetInputList'), obs.request('GetInputList',{unversioned:true}), obs.request('GetInputKindList'), obs.request('GetVideoSettings')
   ]);
   async function items(container, group = false) {
     const result = await obs.request(group ? 'GetGroupSceneItemList' : 'GetSceneItemList', {sceneName: container});
@@ -61,6 +62,11 @@ export async function inventory(obs) {
   const scenes = await Promise.all(list.scenes.map(async ({sceneName, sceneUuid}) => ({
     sceneName, sceneUuid, items: await items(sceneName)
   })));
-  return {collection: collection.currentSceneCollectionName, program: list.currentProgramSceneName,
-    preview: list.currentPreviewSceneName, studio: mode.studioModeEnabled, scenes, inputKinds: inputKinds.inputKinds, inputs: inputs.inputs.map(input => ({...input,inputKindUnversioned: unversioned.inputs.find(entry => entry.inputName === input.inputName)?.inputKind}))};
+  const sources = await Promise.all(inputs.inputs.map(async input => {
+    const plain = unversioned.inputs.find(entry => entry.inputName === input.inputName)?.inputKind;
+    const settings = plain === 'browser_source' ? await obs.request('GetInputSettings',{inputName:input.inputName}) : null;
+    return {...input,inputKindUnversioned:plain,graphic:settings ? readGraphic(settings.inputSettings.url) : null};
+  }));
+  return {collection:collection.currentSceneCollectionName,program:list.currentProgramSceneName,preview:list.currentPreviewSceneName,
+    studio:mode.studioModeEnabled,scenes,inputKinds:inputKinds.inputKinds,inputs:sources,canvas:{width:video.baseWidth,height:video.baseHeight}};
 }

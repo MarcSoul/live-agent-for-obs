@@ -1,4 +1,5 @@
-export const kinds = ['scene','add','text','color','image','move','scale','visibility','preview'];
+import {graphicSpec,graphicUrl,readGraphic} from './graphics.mjs';
+export const kinds = ['scene','add','text','color','image','move','scale','visibility','preview','graphic','restore-graphic'];
 const fail = message => { throw new Error(message); };
 const contains = (items, name) => items.some(item => item.sourceName === name || contains(item.children ?? [],name));
 
@@ -23,6 +24,19 @@ export function compile(action,state) {
   if (kind === 'add') {
     if (!input || matches.length) fail('Elige una fuente existente que aún no esté en la escena.');
     return ['CreateSceneItem',{...args,sourceName:source,sceneItemEnabled:true}];
+  }
+  if (kind === 'graphic' || kind === 'restore-graphic') {
+    if (!state.inputKinds.includes('browser_source')) fail('OBS necesita el componente Fuente de navegador.');
+    if (kind === 'restore-graphic' && !input?.graphic?.previous) fail('Este grafismo no tiene una versión anterior.');
+    if (exists(source) && (!input?.graphic || matches.length !== 1 ||
+        state.scenes.some(parent => parent.sceneName !== name && contains(parent.items,source)) ||
+        scene.items.some(item => contains(item.children ?? [],source)))) fail('El grafismo debe pertenecer solo a esa escena.');
+    const spec = kind === 'graphic' ? graphicSpec(value) : input.graphic.previous;
+    const width = state.canvas?.width, height = state.canvas?.height;
+    if (![width,height].every(n => Number.isInteger(n) && n >= 16 && n <= 8192)) fail('El tamaño de lienzo no es compatible.');
+    const inputSettings = {url:graphicUrl(spec,input?.graphic?.spec),width,height,is_local_file:false,shutdown:false,restart_when_active:false};
+    if (input) return ['SetInputSettings',{inputName:source,inputSettings,overlay:true}];
+    return ['CreateInput',{...args,inputName:source,inputKind:'browser_source',inputSettings,sceneItemEnabled:true}];
   }
   if (kind === 'image') {
     if (exists(source) || !state.inputKinds.includes('image_source')) fail('Elige un nombre nuevo y comprueba que OBS admite fuentes de imagen.');
@@ -59,15 +73,18 @@ export function review(actions,state) {
   return actions.map(action => {
     const [request,args] = compile(action,simulated);
     if (request === 'CreateScene') simulated.scenes.push({sceneName:action.scene,items:[]});
-    if (request === 'CreateInput') simulated.inputs.push({inputName:action.source,inputKindUnversioned:args.inputKind.replace(/_v\d+$/,'')});
+    if (request === 'CreateInput') simulated.inputs.push({inputName:action.source,inputKindUnversioned:args.inputKind.replace(/_v\d+$/,''),graphic:readGraphic(args.inputSettings.url)});
+    if (request === 'SetInputSettings' && args.inputSettings.url)
+      simulated.inputs.find(input => input.inputName === action.source).graphic = readGraphic(args.inputSettings.url);
     if (request === 'CreateInput' || request === 'CreateSceneItem')
       simulated.scenes.find(scene => scene.sceneName === action.scene).items.push({sourceName:action.source});
-    return action;
+    const graphicPreview = args.inputSettings?.url;
+    return graphicPreview ? {...action,graphicPreview} : action;
   });
 }
 
 export async function verifyChange(obs,request,args) {
-  const equal = (actual,expected) => Object.entries(expected).every(([key,value]) => typeof value === 'number' ? Math.abs(actual?.[key] - value) < 0.001 : (actual?.[key] ?? (key === 'read_from_file' ? false : undefined)) === value);
+  const equal = (actual,expected) => Object.entries(expected).every(([key,value]) => typeof value === 'number' ? Math.abs(actual?.[key] - value) < 0.001 : (actual?.[key] ?? (['read_from_file','is_local_file','shutdown','restart_when_active'].includes(key) ? false : undefined)) === value);
   if (request === 'SetCurrentPreviewScene') return (await obs.request('GetCurrentPreviewScene')).sceneName === args.sceneName;
   if (request === 'CreateScene') return (await obs.request('GetSceneList')).scenes.some(scene => scene.sceneName === args.sceneName);
   if (request === 'CreateSceneItem' || request === 'CreateInput') {

@@ -13,11 +13,13 @@
 <p id="account" role="status"></p>
 <pre id="chat" aria-live="polite"></pre>
 <label>Orden o consulta<textarea id="prompt" rows="3" placeholder="Pon la escena Entrevista en previo"></textarea></label>
+<label>Cartel opcional<input id="poster" type="file" accept="image/png,image/jpeg,image/webp"></label>
 <button id="plan">Consultar</button><button id="inspect">Revisar previo con imagen</button>
 <label><input id="autoVision" type="checkbox" style="width:auto"> Visión automática del previo</label>
 <small>Si la activas, se envían capturas del previo a ChatGPT al consultar y después de aplicar cambios. Requiere Modo Estudio y un modelo con visión.</small>
 <button id="apply" disabled>Aplicar propuesta</button>
 <p id="status" role="status"></p>
+<iframe id="graphicPreview" title="Vista previa del grafismo" hidden style="width:100%;border:0;background:#16181c" sandbox="allow-scripts"></iframe>
 <pre id="details"></pre>
 <script>
 const field = id => document.getElementById(id);
@@ -33,7 +35,16 @@ async function run(route, data) {
   field('status').textContent = 'Consultando…';
   field('details').textContent = '';
   try {
+    const file = route === 'plan' && !data.prompt.trim().startsWith('/') ? field('poster').files[0] : null;
+    if (file) {
+      if (file.size > 8*1024*1024) throw new Error('El cartel supera 8 MB.');
+      const upload = await fetch('/graphic-assets',{method:'POST',headers:{'Content-Type':file.type},body:file});
+      const asset = await upload.json();
+      if (!upload.ok) throw new Error(asset.error);
+      data = {...data,prompt:data.prompt+'\nCartel adjunto: '+asset.url};
+    }
     let result = await request(route,data);
+    if (file) field('poster').value = '';
     if (route === 'apply' && field('autoVision').checked && result.state?.studio && result.state.preview) {
       const applied = result;
       field('status').textContent = applied.message + ' Revisando el resultado en previo…';
@@ -49,9 +60,15 @@ async function run(route, data) {
       }
     }
     planId = result.id;
+    if (result.graphicPreview) {
+      const frame = field('graphicPreview');
+      frame.style.aspectRatio = result.canvas.width + ' / ' + result.canvas.height;
+      frame.src = result.graphicPreview;
+      frame.hidden = false;
+    }
     if (route === 'plan') field('chat').textContent += 'Tú: '+data.prompt+'\nLive Agent: '+result.message+'\n\n';
     field('status').textContent = result.visualScene ? 'Captura revisada: '+result.visualScene : result.message ?? 'Escenas leídas.';
-    const details = result.steps?.map(step => Object.fromEntries(Object.entries(step).filter(([,value]) => value !== null))) ?? result.state ?? (route === 'inventory' ? result : undefined);
+    const details = result.steps?.map(step => Object.fromEntries(Object.entries(step).filter(([key,value]) => key !== 'graphicPreview' && value !== null))) ?? result.state ?? (route === 'inventory' ? result : undefined);
     if (details) field('details').textContent = JSON.stringify(details,null,2);
   } catch (error) {
     field('status').textContent = error.message;

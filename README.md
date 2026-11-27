@@ -1,6 +1,6 @@
 # Live Agent
 
-Versión preliminar 0.3 para **Windows**. Panel acoplable para crear y preparar escenas, añadir cámaras y audio ya configurados, dar de alta rótulos, fondos de color e imágenes y editar su posición, escala y visibilidad.
+Versión preliminar 0.4 para **Windows**. Panel acoplable para crear y preparar escenas, añadir cámaras y audio ya configurados, dar de alta rótulos, fondos de color e imágenes y editar su posición, escala y visibilidad.
 
 ## Arranque en Windows
 
@@ -24,3 +24,11 @@ Ejemplo: «Crea Entrevista, añade Cámara 1, crea un rótulo Invitado con el te
 **Revisar previo con imagen** captura la escena en Previo y la envía a ChatGPT junto con la petición. Usa un modelo con visión y activa el Modo Estudio. Tras aplicar un montaje, puedes escribir «Corrige los solapes y deja el rótulo dentro del lienzo» y pulsar ese botón. Revisa y aplica cualquier corrección propuesta desde el panel.
 
 Con **Visión automática del previo** activada, una consulta normal incluye el fotograma si hay una escena en Previo. Tras aplicar un plan, el panel vuelve a capturar el previo y muestra posibles correcciones. El operador decide si las aplica. Sin previo, la consulta normal funciona con el inventario de OBS.
+
+## Grafismos animados
+
+Con el Modo Estudio activo, pide «Crea una escena Entrada y prepara una cortinilla estilo Black Note para The Night Band con dos minutos de cuenta atrás. Déjala en previo». Puedes adjuntar un cartel PNG, JPEG o WebP de hasta 8 MB. También puedes dar una URL HTTPS pública de imagen. El panel muestra el grafismo antes de aplicarlo.
+
+Prueba «Reduce el cartel y destaca el contador» o «Restaura la versión anterior de Entrada». Las ediciones conservan la misma fuente de navegador. También puedes pedir una pantalla de espera o un tercio inferior, con estilos Black Note, Editorial y Minimal. El contador comienza al cargar el grafismo. Para reiniciarlo, actualiza la caché de la fuente de navegador desde OBS.
+
+Deja Live Agent en marcha para que OBS pueda cargar los grafismos y los carteles locales. Los carteles quedan en el equipo y los ajustes del grafismo se conservan en la fuente de OBS. El modo de visión automática puede enviar una captura del previo a ChatGPT, como indica el panel.

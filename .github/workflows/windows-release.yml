@@ -9,13 +9,13 @@ on:
 permissions:
   contents: write
 concurrency:
-  group: windows-installer-0.3.3
+  group: windows-installer-0.4.0
   cancel-in-progress: false
 jobs:
   release:
     runs-on: windows-2022
     env:
-      VERSION: 0.3.3
+      VERSION: 0.4.0
       NODE_VERSION: 24.22.3
       GH_TOKEN: ${{ github.token }}
     steps:
@@ -36,12 +36,19 @@ jobs:
           $node = "$env:RUNNER_TEMP/node/node-v$env:NODE_VERSION-win-x64"
           Copy-Item "$node/node.exe" "$runtime/node.exe"
           Copy-Item "$node/LICENSE" "$runtime/LICENSE.txt"
-          Copy-Item actions.mjs, server.mjs, obs.mjs, chatgpt.mjs, start-windows.cmd, README.md -Destination installer/payload/
+          Copy-Item graphics.mjs, actions.mjs, server.mjs, obs.mjs, chatgpt.mjs, start-windows.cmd, README.md -Destination installer/payload/
           Copy-Item public, docs -Destination installer/payload/ -Recurse
           foreach ($file in Get-ChildItem installer/payload/*.mjs) {
             & "$runtime/node.exe" --check $file.FullName
             if ($LASTEXITCODE -ne 0) { throw "Invalid JavaScript in $file" }
           }
+      - name: Verify graphic rendering on Windows
+        shell: pwsh
+        run: |
+          npm install --no-save --package-lock=false playwright@1.62.1
+          if ($LASTEXITCODE -ne 0) { throw "Playwright install failed" }
+          & installer/payload/runtime/node.exe tests/graphics.cjs
+          if ($LASTEXITCODE -ne 0) { throw "Graphic rendering test failed" }
       - name: Build installer
         shell: pwsh
         run: |

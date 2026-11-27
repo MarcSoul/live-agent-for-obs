@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="es">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Live Agent · Grafismo</title>
+<style>
+*{box-sizing:border-box}
+:root{font-family:"Segoe UI",system-ui,sans-serif;color:#f7f4ed;--accent:#ffd426;--ink:#090909;--veil:#141414}
+body{margin:0}
+body[data-style="editorial"]{--accent:#ffa77c;--ink:#190f18;--veil:#381931}
+body[data-style="minimal"]{--accent:#b9e7e0;--ink:#091518;--veil:#133137}
+.stage{position:fixed;inset:0;display:grid;place-items:center;overflow:hidden;padding:6vmin;background:radial-gradient(ellipse at 85% 15%,var(--veil),transparent 58%),linear-gradient(130deg,var(--ink),#06070a)}
+.stage::before{content:"";position:absolute;inset:-30%;background:repeating-linear-gradient(130deg,transparent 0 6vmin,#fff 6.05vmin 6.12vmin);opacity:.07;animation:drift 20s linear infinite;pointer-events:none}
+@keyframes drift{to{transform:translateX(12vmin)}}
+@keyframes enter{from{opacity:0;transform:translateY(3vmin)}to{opacity:1;transform:none}}
+.layout{position:relative;width:min(100%,158vmin);display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:6vmin;animation:enter .65s ease both}
+.layout.no-poster{grid-template-columns:minmax(0,1fr)}
+.copy{min-width:0}
+.eyebrow{display:flex;align-items:center;gap:1.2vmin;font-size:2vmin;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);margin:0 0 2vmin}
+.eyebrow::before{content:"";width:4vmin;height:.4vmin;background:currentColor}
+h1{font-size:8vmin;line-height:1.01;letter-spacing:-.045em;margin:0;overflow-wrap:anywhere;font-weight:800}
+.subtitle{font-size:3vmin;line-height:1.25;margin:1.6vmin 0 0;overflow-wrap:anywhere;color:#e5dfd9}
+.timer{display:inline-block;margin:3vmin 0 0;font-size:12vmin;font-weight:800;line-height:.9;letter-spacing:-.06em;font-variant-numeric:tabular-nums;color:var(--accent);border-top:1px solid #ffffff45;padding-top:2vmin}
+.poster{display:block;max-width:38vmin;max-height:64vh;width:auto;height:auto;object-fit:contain;border:1px solid #ffffff42;box-shadow:0 2vmin 7vmin #0009}
+[data-emphasis="timer"] .poster{max-width:29vmin}
+[data-emphasis="timer"] .timer{font-size:15vmin}
+[hidden]{display:none!important}
+[data-type="lower-third"] .stage{background:transparent;padding:6vmin;place-items:end start}
+[data-type="lower-third"] .stage::before,[data-type="lower-third"] .eyebrow{display:none}
+[data-type="lower-third"][data-side="right"] .stage{place-items:end end}
+[data-type="lower-third"] .layout{width:min(72%,95vmin);background:var(--ink);padding:2.5vmin 3vmin;border-left:.7vmin solid var(--accent);box-shadow:0 1vmin 4vmin #0007}
+[data-type="lower-third"] h1{font-size:5.3vmin}
+[data-type="lower-third"] .subtitle{font-size:2.7vmin;margin-top:.7vmin}
+@media (max-aspect-ratio:1/1){.layout{grid-template-columns:minmax(0,1fr);gap:5vmin}.poster{grid-row:1;max-width:70vmin;max-height:42vh}[data-emphasis="timer"] .poster{max-width:55vmin;max-height:36vh}[data-type="lower-third"] .layout{width:min(95%,88vmin)}}
+@media (prefers-reduced-motion:reduce){*,*::before{animation:none!important}}
+</style>
+<main class="stage">
+  <article class="layout no-poster">
+    <div class="copy">
+      <p class="eyebrow"></p>
+      <h1></h1><p class="subtitle" hidden></p><div class="timer" hidden></div>
+    </div>
+    <img class="poster" hidden alt="">
+  </article>
+</main>
+<script src="/graphic.js" defer></script>
