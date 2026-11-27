@@ -126,6 +126,12 @@ async function models() {
   return (result.models ?? []).filter(item => item.visibility === 'list' && item.slug);
 }
 
+export async function preferences() {
+  const catalog = await models();
+  if (!catalog.some(item => item.slug === model)) model = catalog[0]?.slug;
+  return {model,reasoning,levels,models:catalog.map(({slug,display_name})=>({slug,label:display_name || slug}))};
+}
+
 export async function command(text) {
   const [name, value, extra] = text.trim().split(/\s+/);
   if (extra) throw new Error('Usa un solo argumento para el comando.');

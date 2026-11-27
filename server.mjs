@@ -98,6 +98,17 @@ export const server = createServer({maxHeaderSize:128*1024}, async (req,res) => 
   let obs;
   try {
     const input = await readBody(req);
+    if (req.url === '/auth/preferences') {
+      if (input.model !== undefined) {
+        if (typeof input.model !== 'string' || !/^[a-zA-Z0-9_.:-]+$/.test(input.model)) throw new Error('Modelo inválido.');
+        await chat.command('/model '+input.model);
+      }
+      if (input.reasoning !== undefined) {
+        if (typeof input.reasoning !== 'string' || !/^[a-z]+$/.test(input.reasoning)) throw new Error('Razonamiento inválido.');
+        await chat.command('/reasoning '+input.reasoning);
+      }
+      return json(res,200,await chat.preferences());
+    }
     if (req.url === '/auth/status') return json(res,200,chat.status());
     if (req.url === '/auth/start') return json(res,200,await chat.begin());
     if (req.url === '/auth/logout') {

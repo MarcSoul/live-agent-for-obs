@@ -2,7 +2,9 @@
 #include <obs-frontend-api.h>
 #include <QAction>
 #include <QByteArray>
+#include <QComboBox>
 #include <QDialog>
+#include <QSignalBlocker>
 #include <QFile>
 #include <QFileDialog>
 #include <QFileInfo>
@@ -27,6 +29,7 @@
 #include <QUrl>
 #include <QVBoxLayout>
 #include <functional>
+#include <memory>
 #include <utility>
 
 OBS_DECLARE_MODULE()
@@ -110,10 +113,74 @@ public:
 		auto *hint = new QLabel(tr("Se abre el navegador solo para autorizar la cuenta. Las órdenes con visión pueden enviar una captura del previo a ChatGPT."), settings);
 		hint->setWordWrap(true);
 		layout->addWidget(hint);
+		auto *model = new QComboBox(settings);
+		auto *reasoning = new QComboBox(settings);
+		model->setEnabled(false);
+		reasoning->setEnabled(false);
+		layout->addWidget(new QLabel(tr("Modelo"), settings));
+		layout->addWidget(model);
+		layout->addWidget(new QLabel(tr("Nivel de razonamiento"), settings));
+		layout->addWidget(reasoning);
+		auto *refresh = new QPushButton(tr("Actualizar modelos"), settings);
+		layout->addWidget(refresh);
+		auto *credits = new QLabel(QStringLiteral("Por MarcSoul · <a href=\"https://marcsoul.com\">marcsoul.com</a>"), settings);
+		credits->setOpenExternalLinks(true);
+		layout->addWidget(credits);
+		QPointer<QComboBox> modelBox(model), reasoningBox(reasoning);
+		QPointer<QLabel> feedback(account);
+		auto updatePrefs = [modelBox, reasoningBox, feedback](const QJsonObject &data, const QString &error) {
+			if (!modelBox || !reasoningBox || !feedback)
+				return;
+			if (!error.isEmpty()) {
+				feedback->setText(error);
+				modelBox->setEnabled(modelBox->count() > 0);
+				reasoningBox->setEnabled(reasoningBox->count() > 0);
+				return;
+			}
+			QSignalBlocker blockModel(modelBox.data()), blockReasoning(reasoningBox.data());
+			modelBox->clear();
+			reasoningBox->clear();
+			const auto catalog = data.value("models").toArray();
+			for (const auto &entry : catalog) {
+				const auto item = entry.toObject();
+				modelBox->addItem(item.value("label").toString(), item.value("slug").toString());
+			}
+			const auto levels = data.value("levels").toArray();
+			for (const auto &entry : levels)
+				reasoningBox->addItem(entry.toString(), entry.toString());
+			modelBox->setCurrentIndex(modelBox->findData(data.value("model").toString()));
+			reasoningBox->setCurrentIndex(reasoningBox->findData(data.value("reasoning").toString()));
+			modelBox->setEnabled(modelBox->count() > 0);
+			reasoningBox->setEnabled(reasoningBox->count() > 0);
+		};
+		auto requestPrefs = [this, modelBox, reasoningBox, updatePrefs](const QJsonObject &payload) {
+			if (!modelBox || !reasoningBox)
+				return;
+			modelBox->setEnabled(false);
+			reasoningBox->setEnabled(false);
+			post("/auth/preferences", payload, updatePrefs);
+		};
+		connect(refresh, &QPushButton::clicked, settings.data(), [requestPrefs] { requestPrefs({}); });
+		connect(model, &QComboBox::activated, settings.data(), [model, requestPrefs](int index) {
+			requestPrefs({{"model", model->itemData(index).toString()}});
+		});
+		connect(reasoning, &QComboBox::activated, settings.data(), [reasoning, requestPrefs](int index) {
+			requestPrefs({{"reasoning", reasoning->itemData(index).toString()}});
+		});
 		QPointer<QLabel> label(account);
-		auto update = [label](const QJsonObject &data, const QString &error) {
+		auto update = [label, modelBox, reasoningBox, requestPrefs, wasConnected=std::make_shared<bool>(false)](const QJsonObject &data, const QString &error) mutable {
 			if (!label)
 				return;
+			const bool connected = error.isEmpty() && data.value("connected").toBool();
+			if (connected && !*wasConnected)
+				requestPrefs({});
+			if (!connected && *wasConnected && modelBox && reasoningBox) {
+				modelBox->clear();
+				reasoningBox->clear();
+				modelBox->setEnabled(false);
+				reasoningBox->setEnabled(false);
+			}
+			*wasConnected = connected;
 			if (!error.isEmpty())
 				label->setText(error);
 			else if (!data.value("error").toString().isEmpty())
