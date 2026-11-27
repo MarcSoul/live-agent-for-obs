@@ -22,6 +22,14 @@ let browser;
 try {
 browser=await chromium.launch({channel:'msedge'});
 const page=await browser.newPage();
+const generated={type:'generated',html:'<button id="counter">00</button>',css:'button{color:rgb(255, 212, 38)}',
+  js:'document.getElementById("counter").textContent="42";try{parent.document.body.dataset.compromised="1"}catch{document.body.dataset.isolated="1"}'};
+const [custom]=review([{...create,value:JSON.stringify(generated)}],state);
+await page.goto(custom.graphicPreview);
+const runtime=page.frameLocator('iframe');
+await runtime.getByRole('button',{name:'42'}).waitFor({timeout:10000});
+assert.equal(await runtime.locator('body').getAttribute('data-isolated'),'1');
+assert.deepEqual(readGraphic(custom.graphicPreview).spec,generated);
 const dock=await browser.newPage();
 await dock.goto('http://127.0.0.1:47831/');
 await dock.locator('#graphicPreview').evaluate((iframe,url)=>{iframe.src=url;iframe.hidden=false},steps[0].graphicPreview);

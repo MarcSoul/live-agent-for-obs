@@ -36,7 +36,7 @@ export function compile(action,state) {
     if (![width,height].every(n => Number.isInteger(n) && n >= 16 && n <= 8192)) fail('El tamaño de lienzo no es compatible.');
     const url = new URL(graphicUrl(spec,input?.graphic?.spec));
     if (action.revision) url.searchParams.set('revision',action.revision);
-    const inputSettings = {url:url.href,width,height,is_local_file:false,shutdown:false,restart_when_active:false};
+    const inputSettings = {url:url.href,width,height,is_local_file:false,webpage_control_level:0,shutdown:false,restart_when_active:false};
     if (input) return ['SetInputSettings',{inputName:source,inputSettings,overlay:true}];
     return ['CreateInput',{...args,inputName:source,inputKind:'browser_source',inputSettings,sceneItemEnabled:true}];
   }
@@ -86,7 +86,7 @@ export function review(actions,state) {
 }
 
 export async function verifyChange(obs,request,args) {
-  const equal = (actual,expected) => Object.entries(expected).every(([key,value]) => typeof value === 'number' ? Math.abs(actual?.[key] - value) < 0.001 : (actual?.[key] ?? (['read_from_file','is_local_file','shutdown','restart_when_active'].includes(key) ? false : undefined)) === value);
+  const equal = (actual,expected) => Object.entries(expected).every(([key,value]) => typeof value === 'number' ? Math.abs((actual?.[key] ?? (key === 'webpage_control_level' ? 0 : NaN)) - value) < 0.001 : (actual?.[key] ?? (['read_from_file','is_local_file','shutdown','restart_when_active'].includes(key) ? false : undefined)) === value);
   if (request === 'SetCurrentPreviewScene') return (await obs.request('GetCurrentPreviewScene')).sceneName === args.sceneName;
   if (request === 'CreateScene') return (await obs.request('GetSceneList')).scenes.some(scene => scene.sceneName === args.sceneName);
   if (request === 'CreateSceneItem' || request === 'CreateInput') {

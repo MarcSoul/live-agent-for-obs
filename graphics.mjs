@@ -1,3 +1,5 @@
+import {deflateRawSync,inflateRawSync} from 'node:zlib';
+import {Script} from 'node:vm';
 import {createHash} from 'node:crypto';
 import {mkdir,readFile,writeFile} from 'node:fs/promises';
 import {homedir} from 'node:os';
@@ -59,6 +61,13 @@ function layers(input) {
 
 export function graphicSpec(raw) {
   const input = typeof raw === 'string' ? JSON.parse(raw) : raw;
+  if (input?.type === 'generated') {
+    const {html,css='',js=''} = input;
+    if (typeof html !== 'string' || !html.trim() || typeof css !== 'string' || typeof js !== 'string' ||
+        Buffer.byteLength(html+css+js) > 24000) throw new Error('El recurso generado está vacío o supera 24 KB.');
+    try { new Script(js); } catch { throw new Error('El JavaScript generado tiene un error de sintaxis; pide que lo regenere.'); }
+    return {type:'generated',html,css,js};
+  }
   if (!input || !types.includes(input.type) || !styles.includes(input.style)) throw new Error('Tipo o estilo de grafismo inválido.');
   const title = typeof input.title === 'string' ? input.title.trim() : '';
   const subtitle = typeof input.subtitle === 'string' ? input.subtitle.trim() : '';
@@ -80,8 +89,16 @@ export function graphicSpec(raw) {
     side:input.side === 'right' ? 'right' : 'left'};
 }
 
-const encode = data => Buffer.from(JSON.stringify(data)).toString('base64url');
-const decode = data => graphicSpec(JSON.parse(Buffer.from(data,'base64url').toString('utf8')));
+const encode = data => data.type === 'generated'
+  ? 'z.'+deflateRawSync(JSON.stringify(data)).toString('base64url')
+  : Buffer.from(JSON.stringify(data)).toString('base64url');
+const decode = data => {
+  if (typeof data !== 'string' || data.length > 40000) throw new Error('Recurso inválido.');
+  const bytes = data.startsWith('z.')
+    ? inflateRawSync(Buffer.from(data.slice(2),'base64url'),{maxOutputLength:160000})
+    : Buffer.from(data,'base64url');
+  return graphicSpec(JSON.parse(bytes.toString('utf8')));
+};
 export function readGraphic(value) {
   try {
     const url = new URL(value);
