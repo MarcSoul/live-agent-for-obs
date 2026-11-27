@@ -370,7 +370,7 @@ private:
 					return;
 				}
 				status->setText(tr("Comprobando el grafismo en previo…"));
-				post("/plan", {{"password",password},{"prompt",QString("Revisa visualmente el resultado en Previo y corrige solo la geometría si hace falta. Encargo original: ") + text},
+				post("/plan", {{"password",password},{"prompt",QString("Revisa visualmente el resultado en Previo y corrige el encuadre o el diseño del grafismo generado si ves un problema concreto. Encargo original: ") + text},
 					       {"inspectPreview",true},{"visualReview",true},{"expectedPreview",preview},{"reviewSources",sources}},
 				     [this](const QJsonObject &review, const QString &reviewError) {
 					     if (reviewError.isEmpty())
