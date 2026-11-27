@@ -1,3 +1,5 @@
+Novedades: creación de escenas, reutilización de cámaras y audio, fuentes de texto, color e imagen, posición y escala, y planes de varios pasos revisables.
+
 Prelanzamiento para **Windows x64** y **OBS Studio 33**. El instalador incluye el runtime Node.js y no requiere privilegios de administrador. OBS se instala por separado.
 
 Inicia Live Agent desde el menú Inicio. En OBS, activa WebSocket en el puerto 4455 y añade un panel de navegador personalizado con la URL http://127.0.0.1:47831/. Conecta tu cuenta desde el panel con **Continuar con ChatGPT**.

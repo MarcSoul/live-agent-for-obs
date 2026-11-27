@@ -48,8 +48,8 @@ export async function connect(password) {
 }
 
 export async function inventory(obs) {
-  const [list, mode, collection] = await Promise.all([
-    obs.request('GetSceneList'), obs.request('GetStudioModeEnabled'), obs.request('GetSceneCollectionList')
+  const [list, mode, collection, inputs, unversioned, inputKinds] = await Promise.all([
+    obs.request('GetSceneList'), obs.request('GetStudioModeEnabled'), obs.request('GetSceneCollectionList'), obs.request('GetInputList'), obs.request('GetInputList',{unversioned:true}), obs.request('GetInputKindList')
   ]);
   async function items(container, group = false) {
     const result = await obs.request(group ? 'GetGroupSceneItemList' : 'GetSceneItemList', {sceneName: container});
@@ -62,5 +62,5 @@ export async function inventory(obs) {
     sceneName, sceneUuid, items: await items(sceneName)
   })));
   return {collection: collection.currentSceneCollectionName, program: list.currentProgramSceneName,
-    preview: list.currentPreviewSceneName, studio: mode.studioModeEnabled, scenes};
+    preview: list.currentPreviewSceneName, studio: mode.studioModeEnabled, scenes, inputKinds: inputKinds.inputKinds, inputs: inputs.inputs.map(input => ({...input,inputKindUnversioned: unversioned.inputs.find(entry => entry.inputName === input.inputName)?.inputKind}))};
 }

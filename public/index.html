@@ -36,7 +36,7 @@ async function run(route, data) {
     planId = result.id;
     if (route === 'plan') field('chat').textContent += 'Tú: '+data.prompt+'\nLive Agent: '+result.message+'\n\n';
     field('status').textContent = result.message ?? 'Escenas leídas.';
-    const details = result.request ? {operación:result.request,parámetros:result.args} : result.state ?? (route === 'inventory' ? result : undefined);
+    const details = result.steps?.map(step => Object.fromEntries(Object.entries(step).filter(([,value]) => value !== null))) ?? result.state ?? (route === 'inventory' ? result : undefined);
     if (details) field('details').textContent = JSON.stringify(details,null,2);
   } catch (error) {
     field('status').textContent = error.message;

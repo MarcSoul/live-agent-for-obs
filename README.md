@@ -1,6 +1,6 @@
 # Live Agent
 
-Prototipo 0.1 para **Windows**. Panel acoplable para consultar escenas de OBS, preparar escenas existentes en previo y mostrar u ocultar fuentes en escenas aisladas de Programa.
+Versión preliminar 0.3 para **Windows**. Panel acoplable para crear y preparar escenas, añadir cámaras y audio ya configurados, dar de alta rótulos, fondos de color e imágenes y editar su posición, escala y visibilidad.
 
 ## Arranque en Windows
 
@@ -17,4 +17,6 @@ Prototipo 0.1 para **Windows**. Panel acoplable para consultar escenas de OBS, p
 
 Live Agent conecta mediante [Sign in with ChatGPT](https://developers.openai.com/siwc/token-sharing-open-source) para cuentas y proyectos elegibles. La sesión y los ajustes duran mientras el proceso local siga abierto. Las credenciales de ChatGPT se mantienen en memoria en el servidor local. El modelo recibe la conversación reciente y el inventario de OBS en cada consulta.
 
-La creación de escenas, inspección visual y recetas forman parte del [plan de desarrollo](docs/development.md). Prueba los cambios sobre una colección de ensayo antes de utilizarlos en directo.
+La inspección visual y las recetas forman parte del [plan de desarrollo](docs/development.md). Prueba los cambios sobre una colección de ensayo antes de utilizarlos en directo.
+
+Ejemplo: «Crea Entrevista, añade Cámara 1, crea un rótulo Invitado con el texto Marc, muévelo a x=100 e y=800 y deja Entrevista en previo». Revisa la lista antes de aplicar. Si un paso falla, los cambios ya aplicados se conservan.
