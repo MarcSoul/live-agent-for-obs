@@ -54,8 +54,8 @@ export async function inventory(obs) {
   ]);
   async function items(container, group = false) {
     const result = await obs.request(group ? 'GetGroupSceneItemList' : 'GetSceneItemList', {sceneName: container});
-    return Promise.all(result.sceneItems.map(async ({sceneItemId, sourceName, sourceUuid, sceneItemEnabled, isGroup}) => ({
-      sceneItemId, sourceName, sourceUuid, sceneItemEnabled,
+    return Promise.all(result.sceneItems.map(async ({sceneItemId, sourceName, sourceUuid, sceneItemEnabled, sceneItemTransform, sceneItemIndex, isGroup}) => ({
+      sceneItemId, sourceName, sourceUuid, sceneItemEnabled, sceneItemTransform, sceneItemIndex,
       ...(isGroup ? {children: await items(sourceName, true)} : {})
     })));
   }

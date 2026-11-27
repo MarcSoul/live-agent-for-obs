@@ -337,7 +337,7 @@ private:
 
 	void plan(const QString &text)
 	{
-		post("/plan", {{"password", password}, {"prompt", text}, {"inspectPreview", "auto"}}, [this](const QJsonObject &data, const QString &error) {
+		post("/plan", {{"password", password}, {"prompt", text}, {"inspectPreview", "auto"}}, [this, text](const QJsonObject &data, const QString &error) {
 			if (!error.isEmpty()) {
 				done(error);
 				return;
@@ -348,32 +348,42 @@ private:
 				done();
 				return;
 			}
-			QString graphicScene;
+			
 			const auto steps = data.value("steps").toArray();
-			for (const auto &entry : steps) {
-				const auto step = entry.toObject();
-				const auto kind = step.value("kind").toString();
-				if (kind == "graphic" || kind == "restore-graphic")
-					graphicScene = step.value("scene").toString();
-			}
+
 			status->setText(tr("Aplicando cambios en OBS…"));
-			post("/apply", {{"password", password}, {"id", id}}, [this, graphicScene](const QJsonObject &result, const QString &applyError) {
+			post("/apply", {{"password", password}, {"id", id}}, [this, steps, text](const QJsonObject &result, const QString &applyError) {
 				if (!applyError.isEmpty()) {
 					done(applyError);
 					return;
 				}
 				append(result.value("message").toString());
-				if (graphicScene.isEmpty() || result.value("state").toObject().value("preview").toString() != graphicScene) {
+				const auto preview = result.value("state").toObject().value("preview").toString();
+				QJsonArray sources;
+				for (const auto &entry : steps) {
+					const auto step = entry.toObject();
+					if (step.value("scene").toString() == preview && !step.value("source").toString().isEmpty())
+						sources.append(step.value("source"));
+				}
+				if (preview.isEmpty() || sources.isEmpty()) {
 					done();
 					return;
 				}
 				status->setText(tr("Comprobando el grafismo en previo…"));
-				post("/plan", {{"password",password},{"prompt","Revisa visualmente el grafismo en previo: solapes, recortes y legibilidad."},
-					       {"inspectPreview","auto"},{"visualReview",true},{"expectedPreview",graphicScene}},
+				post("/plan", {{"password",password},{"prompt",QString("Revisa visualmente el resultado en Previo y corrige solo la geometría si hace falta. Encargo original: ") + text},
+					       {"inspectPreview",true},{"visualReview",true},{"expectedPreview",preview},{"reviewSources",sources}},
 				     [this](const QJsonObject &review, const QString &reviewError) {
 					     if (reviewError.isEmpty())
 						     append(tr("Revisión: %1").arg(review.value("message").toString()));
-					     done(reviewError);
+					     const auto fix = review.value("id").toString();
+					     if (!reviewError.isEmpty() || fix.isEmpty()) {
+						     done(reviewError);
+						     return;
+					     }
+					     post("/apply", {{"password",password},{"id",fix}}, [this](const QJsonObject &result, const QString &error) {
+						     if (error.isEmpty()) append(tr("Ajuste visual: %1").arg(result.value("message").toString()));
+						     done(error);
+					     });
 				     });
 			});
 		});

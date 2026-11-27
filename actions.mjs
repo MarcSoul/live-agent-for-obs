@@ -1,5 +1,5 @@
 import {graphicSpec,graphicUrl,readGraphic} from './graphics.mjs';
-export const kinds = ['scene','add','text','color','image','move','scale','visibility','preview','graphic','restore-graphic'];
+export const kinds = ['scene','add','text','color','image','move','scale','fit','visibility','preview','graphic','restore-graphic'];
 const fail = message => { throw new Error(message); };
 const contains = (items, name) => items.some(item => item.sourceName === name || contains(item.children ?? [],name));
 
@@ -50,9 +50,9 @@ export function compile(action,state) {
     const inputKind = state.inputKinds.find(id => kind === 'text' ? /^text_gdiplus(?:_v\d+)?$/.test(id) : /^color_source(?:_v\d+)?$/.test(id));
     if (!inputKind) fail('Este tipo de fuente no está instalado en OBS.');
     if (typeof value !== 'string' || value.length > 4000) fail('Contenido de fuente inválido.');
-    if (kind === 'color' && !/^#[a-f0-9]{6}$/i.test(value)) fail('Usa un color hexadecimal #RRGGBB.');
+    if (kind === 'color' && !/^#[a-f0-9]{6}([a-f0-9]{2})?$/i.test(value)) fail('Usa #RRGGBB o #RRGGBBAA para indicar la opacidad.');
     const inputSettings = kind === 'text' ? {text:value} :
-      {color:(0xff000000 | parseInt(value.slice(5,7)+value.slice(3,5)+value.slice(1,3),16)) >>> 0};
+      {color:parseInt((value.slice(7,9)||'ff')+value.slice(5,7)+value.slice(3,5)+value.slice(1,3),16),width:state.canvas.width,height:state.canvas.height};
     if (!exists(source)) return ['CreateInput',{...args,inputName:source,inputKind,inputSettings,sceneItemEnabled:true}];
     if (matches.length !== 1 || input?.inputKindUnversioned !== inputKind.replace(/_v\d+$/,'') ||
         state.scenes.some(parent => parent.sceneName !== name && contains(parent.items,source)) ||
@@ -62,6 +62,15 @@ export function compile(action,state) {
   if (matches.length !== 1) fail('La fuente debe aparecer una sola vez en esa escena.');
   args.sceneItemId = matches[0].sceneItemId;
   if (kind === 'visibility' && typeof visible === 'boolean') return ['SetSceneItemEnabled',{...args,sceneItemEnabled:visible}];
+  if (kind === 'fit') {
+    const {width,height}=state.canvas;
+    return ['SetSceneItemTransform',{...args,sceneItemTransform:{
+      positionX:0,positionY:0,alignment:5,rotation:0,scaleX:1,scaleY:1,
+      cropLeft:0,cropRight:0,cropTop:0,cropBottom:0,
+      boundsType:value === 'contain' ? 'OBS_BOUNDS_SCALE_INNER' : 'OBS_BOUNDS_STRETCH',
+      boundsAlignment:0,boundsWidth:width,boundsHeight:height
+    }}];
+  }
   if (kind === 'move' && [x,y].every(n => Number.isFinite(n) && Math.abs(n) <= 32768))
     return ['SetSceneItemTransform',{...args,sceneItemTransform:{positionX:x,positionY:y}}];
   if (kind === 'scale' && [x,y].every(n => Number.isFinite(n) && n >= 0.01 && n <= 20))
@@ -87,7 +96,7 @@ export function review(actions,state) {
 
 export async function verifyChange(obs,request,args) {
   const equal = (actual,expected) => Object.entries(expected).every(([key,value]) => typeof value === 'number' ? Math.abs((actual?.[key] ?? (key === 'webpage_control_level' ? 0 : NaN)) - value) < 0.001 : (actual?.[key] ?? (['read_from_file','is_local_file','shutdown','restart_when_active'].includes(key) ? false : undefined)) === value);
-  if (request === 'SetCurrentPreviewScene') return (await obs.request('GetCurrentPreviewScene')).sceneName === args.sceneName;
+  if (request === 'SetCurrentPreviewScene') { const result=await obs.request('GetCurrentPreviewScene'); return (result.currentPreviewSceneName ?? result.sceneName) === args.sceneName; }
   if (request === 'CreateScene') return (await obs.request('GetSceneList')).scenes.some(scene => scene.sceneName === args.sceneName);
   if (request === 'CreateSceneItem' || request === 'CreateInput') {
     const items = (await obs.request('GetSceneItemList',{sceneName:args.sceneName})).sceneItems;
