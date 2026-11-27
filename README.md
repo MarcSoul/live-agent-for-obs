@@ -22,3 +22,5 @@ La inspección visual y las recetas forman parte del [plan de desarrollo](docs/d
 Ejemplo: «Crea Entrevista, añade Cámara 1, crea un rótulo Invitado con el texto Marc, muévelo a x=100 e y=800 y deja Entrevista en previo». Revisa la lista antes de aplicar. Si un paso falla, los cambios ya aplicados se conservan.
 
 **Revisar previo con imagen** captura la escena en Previo y la envía a ChatGPT junto con la petición. Usa un modelo con visión y activa el Modo Estudio. Tras aplicar un montaje, puedes escribir «Corrige los solapes y deja el rótulo dentro del lienzo» y pulsar ese botón. Revisa y aplica cualquier corrección propuesta desde el panel.
+
+Con **Visión automática del previo** activada, una consulta normal incluye el fotograma si hay una escena en Previo. Tras aplicar un plan, el panel vuelve a capturar el previo y muestra posibles correcciones. El operador decide si las aplica. Sin previo, la consulta normal funciona con el inventario de OBS.

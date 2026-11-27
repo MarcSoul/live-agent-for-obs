@@ -14,7 +14,8 @@
 <pre id="chat" aria-live="polite"></pre>
 <label>Orden o consulta<textarea id="prompt" rows="3" placeholder="Pon la escena Entrevista en previo"></textarea></label>
 <button id="plan">Consultar</button><button id="inspect">Revisar previo con imagen</button>
-<small>La revisión envía una captura del previo a ChatGPT.</small>
+<label><input id="autoVision" type="checkbox" style="width:auto"> Visión automática del previo</label>
+<small>Si la activas, se envían capturas del previo a ChatGPT al consultar y después de aplicar cambios. Requiere Modo Estudio y un modelo con visión.</small>
 <button id="apply" disabled>Aplicar propuesta</button>
 <p id="status" role="status"></p>
 <pre id="details"></pre>
@@ -26,15 +27,27 @@ let busy = false;
 async function run(route, data) {
   if (busy) return;
   busy = true;
+  field('autoVision').disabled = true;
   document.querySelectorAll('button').forEach(button => button.disabled = true);
   planId = undefined;
   field('status').textContent = 'Consultando…';
   field('details').textContent = '';
   try {
-    const response = await fetch('/'+route,{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({password:field('password').value,...data})});
-    const result = await response.json();
-    if (!response.ok) throw new Error(result.error);
+    let result = await request(route,data);
+    if (route === 'apply' && field('autoVision').checked && result.state?.studio && result.state.preview) {
+      const applied = result;
+      field('status').textContent = applied.message + ' Revisando el resultado en previo…';
+      try {
+        const review = await request('plan',{
+          prompt:'Revisa el resultado de los cambios que acabo de aplicar. Señala problemas visibles y propón correcciones solo si hacen falta.',
+          inspectPreview:true
+        });
+        field('chat').textContent += 'Revisión del previo: '+review.message+'\n\n';
+        result = {...review,message:applied.message,state:applied.state};
+      } catch (error) {
+        result = {...applied,message:applied.message+' Revisión visual: '+error.message};
+      }
+    }
     planId = result.id;
     if (route === 'plan') field('chat').textContent += 'Tú: '+data.prompt+'\nLive Agent: '+result.message+'\n\n';
     field('status').textContent = result.visualScene ? 'Captura revisada: '+result.visualScene : result.message ?? 'Escenas leídas.';
@@ -49,11 +62,19 @@ async function run(route, data) {
     field('inventory').disabled = false;
     field('plan').disabled = false;
     field('inspect').disabled = false;
+    field('autoVision').disabled = false;
     field('apply').disabled = !planId;
   }
 }
+async function request(route,data) {
+  const response = await fetch('/'+route,{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({password:field('password').value,...data})});
+  const result = await response.json();
+  if (!response.ok) throw new Error(result.error);
+  return result;
+}
 field('inventory').onclick = () => run('inventory',{});
-field('plan').onclick = () => run('plan',{prompt:field('prompt').value});
+field('plan').onclick = () => run('plan',{prompt:field('prompt').value,inspectPreview:field('autoVision').checked ? 'auto' : false});
 field('inspect').onclick = () => run('plan', {
   prompt: field('prompt').value.trim() || 'Revisa el grafismo del previo. Señala solapes, recortes y problemas de lectura y propón correcciones posibles.',
   inspectPreview:true

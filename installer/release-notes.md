@@ -1,3 +1,5 @@
+Novedad: visión automática del previo durante el chat y revisión visual después de aplicar cambios.
+
 Novedad: revisión visual del previo con una captura de OBS y propuestas de corrección.
 
 Novedades: creación de escenas, reutilización de cámaras y audio, fuentes de texto, color e imagen, posición y escala, y planes de varios pasos revisables.
