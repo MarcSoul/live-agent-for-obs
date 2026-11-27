@@ -43,7 +43,58 @@ if (spec.poster && spec.type !== 'lower-third') {
   poster.onload = () => { poster.hidden = false; layout.classList.remove('no-poster'); fit(); };
   poster.src = spec.poster;
 }
-if (spec.type === 'countdown') {
+if (spec.type === 'custom') {
+  stage.classList.add('free');
+  stage.style.background = spec.transparent ? 'transparent' : spec.background;
+  layout.hidden = true;
+  const timers = [];
+  for (const item of spec.layers) {
+    const layer = document.createElement('div');
+    layer.className = 'free-layer';
+    layer.dataset.motion = item.motion;
+    Object.assign(layer.style,{left:item.x+'%',top:item.y+'%',width:item.width+'%',height:item.height+'%',
+      transform:'translate(-50%,-50%) rotate('+item.rotate+'deg)',opacity:item.opacity,color:item.fill,
+      fontSize:item.size+'vmin',borderRadius:item.radius+'vmin',textAlign:item.align});
+    if (item.kind === 'circle') {
+      layer.style.width = item.width+'vmin';
+      layer.style.height = item.width+'vmin';
+      layer.style.borderRadius = '50%';
+    }
+    if (['rect','circle','line'].includes(item.kind)) {
+      layer.style.background = item.fill;
+      layer.style.border = '.2vmin solid '+item.stroke;
+    } else if (item.kind === 'image' && spec.poster) {
+      const img = document.createElement('img');
+      img.alt = '';
+      img.src = spec.poster;
+      layer.append(img);
+    } else {
+      const content = document.createElement('div');
+      content.className = 'content';
+      content.textContent = item.text;
+      if (item.kind === 'timer') timers.push(content);
+      layer.append(content);
+    }
+    stage.append(layer);
+  }
+  if (timers.length) {
+    const end = Date.now()+spec.seconds*1000;
+    const interval = setInterval(tick,100);
+    function tick() {
+      const left = Math.max(0,Math.ceil((end-Date.now())/1000));
+      const label = [Math.floor(left/60),left%60].map(n=>String(n).padStart(2,'0')).join(':');
+      for (const clock of timers) clock.textContent = label;
+      if (!left) {
+        clearInterval(interval);
+        if (spec.fadeOut) {
+          stage.classList.add('finished');
+          setTimeout(()=>{stage.hidden=true;},1000);
+        }
+      }
+    }
+    tick();
+  }
+} else if (spec.type === 'countdown') {
   timer.hidden = false;
   const end = Date.now() + spec.seconds*1000;
   const tick = () => {

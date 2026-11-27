@@ -40,6 +40,19 @@ h1{font-size:8vmin;line-height:1.01;letter-spacing:-.045em;margin:0;overflow-wra
 .clock{position:relative;display:grid;place-items:center;width:min(54vmin,46vh);aspect-ratio:1;margin:2vmin auto;color:#fff}
 .clock svg{position:absolute;inset:0;width:100%;height:100%}
 .clock .timer{font-size:8vmin;margin:0;padding:0;border:0;color:inherit}
+.stage.free{display:block;padding:0}
+.stage.free::before{display:none}
+.free-layer{position:absolute;display:grid;place-items:center;overflow:hidden;box-sizing:border-box}
+.free-layer .content{width:100%;overflow-wrap:anywhere;line-height:1.08;white-space:pre-wrap}
+.free-layer img{width:100%;height:100%;object-fit:contain}
+.free-layer[data-motion="fade"]{animation:free-fade .65s ease both}
+.free-layer[data-motion="rise"]{animation:free-rise .75s ease both}
+.free-layer[data-motion="pulse"]{animation:free-pulse 2.4s ease-in-out infinite}
+.free-layer[data-motion="spin"]{animation:free-spin 10s linear infinite}
+@keyframes free-fade{from{opacity:0}}
+@keyframes free-rise{from{opacity:0;translate:0 3vmin}}
+@keyframes free-pulse{50%{scale:1.06}}
+@keyframes free-spin{to{rotate:360deg}}
 </style>
 <main class="stage">
   <article class="layout no-poster">
