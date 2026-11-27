@@ -1,5 +1,19 @@
 # Desarrollo
 
+## Objetivo de producto
+
+Live Agent convierte una instrucción breve en un grafismo animado, editable y listo para OBS. La generación de grafismos es la prioridad del producto. El control de escenas y fuentes sigue siendo parte del flujo: preparar la escena, insertar o actualizar el grafismo en Previo y verificar el resultado sobre el plano real. La primera plataforma es Windows con OBS Studio 33.
+
+## Primer hito: grafismos en OBS
+
+1. Crear una cortinilla de concierto con cartel, nombre de la banda y cuenta atrás desde el chat.
+2. Renderizarla como una sola fuente de navegador. Validar márgenes, legibilidad, ajuste de textos largos y formatos 16:9 y 9:16. Permitir estilos propios, empezando por Black Note.
+3. Mostrar una vista previa en el panel y permitir añadir el grafismo a Previo. Usar la captura de OBS para detectar problemas de composición sobre el plano.
+4. Refinar el mismo grafismo por chat, conservar la versión anterior y poder restaurarla.
+5. Extender el renderizador a pantallas de espera y tercios inferiores. Diseñar el formato de grafismo para poder compartir el motor y los kits de marca con Overlay Director.
+
+La prueba se supera cuando «Prepara la entrada del segundo concierto de esta noche con dos minutos de cuenta atrás y estilo Black Note» produce un grafismo listo para revisar en OBS, y «reduce el cartel y destaca la cuenta atrás» actualiza el mismo elemento sin ajustar coordenadas. Repetir la prueba con títulos largos y ambos formatos de lienzo.
+
 ## Arquitectura
 
 - Dock nativo de OBS con chat, propuesta de cambios, resultados y recetas.
