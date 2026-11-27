@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="es">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Live Agent</title>
+<style>
+:root{color-scheme:dark;font:15px system-ui;background:#14161b;color:#eef0f4}body{max-width:650px;margin:auto;padding:20px}h1{margin:0 0 16px}label{display:block;margin:12px 0}input,textarea,button{box-sizing:border-box;font:inherit;padding:9px;border:1px solid #515562;border-radius:6px;background:#20242d;color:inherit}input,textarea{width:100%;margin-top:4px}button{cursor:pointer;margin:4px 4px 4px 0}button:disabled{opacity:.45;cursor:default}#apply{background:#294d8e}pre{white-space:pre-wrap;overflow-wrap:anywhere}#status{min-height:1.5em}
+</style>
+<h1>Live Agent</h1>
+<label>Contraseña WebSocket de OBS<input id="password" type="password" autocomplete="off"></label>
+<button id="inventory">Leer escenas</button>
+<label>Clave de API de OpenAI<input id="apiKey" type="password" autocomplete="off"></label>
+<label>Orden o consulta<textarea id="prompt" rows="3" placeholder="Pon la escena Entrevista en previo"></textarea></label>
+<button id="plan">Consultar</button><button id="apply" disabled>Aplicar propuesta</button>
+<p id="status" role="status"></p>
+<pre id="details"></pre>
+<script>
+const field = id => document.getElementById(id);
+let planId;
+let busy = false;
+
+async function run(route, data) {
+  if (busy) return;
+  busy = true;
+  document.querySelectorAll('button').forEach(button => button.disabled = true);
+  planId = undefined;
+  field('status').textContent = 'Consultando…';
+  field('details').textContent = '';
+  try {
+    const response = await fetch('/'+route,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({password:field('password').value,...data})});
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error);
+    planId = result.id;
+    field('status').textContent = result.message ?? 'Escenas leídas.';
+    const details = result.request ? {operación:result.request,parámetros:result.args} : result.state ?? (route === 'inventory' ? result : undefined);
+    if (details) field('details').textContent = JSON.stringify(details,null,2);
+  } catch (error) {
+    field('status').textContent = error.message;
+  } finally {
+    busy = false;
+    field('inventory').disabled = false;
+    field('plan').disabled = false;
+    field('apply').disabled = !planId;
+  }
+}
+field('inventory').onclick = () => run('inventory',{});
+field('plan').onclick = () => run('plan',{prompt:field('prompt').value,apiKey:field('apiKey').value});
+field('apply').onclick = () => planId && run('apply',{id:planId});
+</script>
