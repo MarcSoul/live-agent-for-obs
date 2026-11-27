@@ -1,13 +1,3 @@
-Grafismos animados por chat: cortinillas con cartel y cuenta atrás, pantallas de espera y tercios inferiores. Vista previa en el panel, instalación en OBS como una sola fuente, edición por chat y restauración de la versión anterior. Windows x64 con OBS 33.
+Panel nativo para OBS en Windows x64. Abre Herramientas → Live Agent: conexión para autorizar ChatGPT, y Paneles → Live Agent para chatear. Las órdenes válidas se aplican directamente en OBS. Cierra OBS y cualquier servicio anterior de Live Agent antes de actualizar.
 
-Novedad: visión automática del previo durante el chat y revisión visual después de aplicar cambios.
-
-Novedad: revisión visual del previo con una captura de OBS y propuestas de corrección.
-
-Novedades: creación de escenas, reutilización de cámaras y audio, fuentes de texto, color e imagen, posición y escala, y planes de varios pasos revisables.
-
-Prelanzamiento para **Windows x64** y **OBS Studio 33**. El instalador incluye el runtime Node.js y no requiere privilegios de administrador. OBS se instala por separado.
-
-Inicia Live Agent desde el menú Inicio. En OBS, activa WebSocket en el puerto 4455 y añade un panel de navegador personalizado con la URL http://127.0.0.1:47831/. Conecta tu cuenta desde el panel con **Continuar con ChatGPT**.
-
-El instalador no está firmado. El flujo de CI comprueba la instalación y el arranque del panel en Windows. La conexión con OBS 33 y la autorización con una cuenta real de ChatGPT requieren una prueba manual.
+El instalador requiere administrador para copiar el complemento a la carpeta compartida de OBS. El ejecutable no está firmado. El instalador incluye el servicio local y su runtime.

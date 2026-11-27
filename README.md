@@ -32,3 +32,9 @@ Con el Modo Estudio activo, pide «Crea una escena Entrada y prepara una cortini
 Prueba «Reduce el cartel y destaca el contador» o «Restaura la versión anterior de Entrada». Las ediciones conservan la misma fuente de navegador. También puedes pedir una pantalla de espera o un tercio inferior, con estilos Black Note, Editorial y Minimal. El contador comienza al cargar el grafismo. Para reiniciarlo, actualiza la caché de la fuente de navegador desde OBS.
 
 Deja Live Agent en marcha para que OBS pueda cargar los grafismos y los carteles locales. Los carteles quedan en el equipo y los ajustes del grafismo se conservan en la fuente de OBS. El modo de visión automática puede enviar una captura del previo a ChatGPT, como indica el panel.
+
+## Panel nativo de Live Agent
+
+En la edición con instalador nativo, cierra OBS y cualquier ventana de Live Agent de una versión anterior antes de actualizar. Tras volver a abrir OBS, activa su WebSocket y abre **Herramientas → Live Agent: conexión** para introducir la contraseña y autorizar ChatGPT. Abre **Paneles → Live Agent** para chatear. El instalador requiere administrador para registrar el complemento en la carpeta de plugins compartida.
+
+Las órdenes se aplican al enviarlas. El motor conserva las comprobaciones de Modo Estudio, Programa y fuentes compartidas. El panel toma una captura del previo cuando la petición tiene contenido visual y revisa un grafismo recién aplicado si la escena afectada está en Previo. La ventana de conexión avisa de que esas capturas se envían a ChatGPT.

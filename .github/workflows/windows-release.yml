@@ -9,13 +9,13 @@ on:
 permissions:
   contents: write
 concurrency:
-  group: windows-installer-0.4.0
+  group: windows-installer-0.5.0
   cancel-in-progress: false
 jobs:
   release:
     runs-on: windows-2022
     env:
-      VERSION: 0.4.0
+      VERSION: 0.5.0
       NODE_VERSION: 24.22.3
       GH_TOKEN: ${{ github.token }}
     steps:
@@ -49,6 +49,35 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "Playwright install failed" }
           & installer/payload/runtime/node.exe tests/graphics.cjs
           if ($LASTEXITCODE -ne 0) { throw "Graphic rendering test failed" }
+      - name: Build native OBS dock
+        shell: pwsh
+        run: |
+          $template = "$env:RUNNER_TEMP/obs-plugin-template"
+          git clone https://github.com/obsproject/obs-plugintemplate.git $template
+          if ($LASTEXITCODE -ne 0) { throw "OBS template download failed" }
+          git -C $template checkout 3e7d7ac3b5342cd7d9b88890b9c70b472d1520fc
+          if ($LASTEXITCODE -ne 0) { throw "OBS template checkout failed" }
+          Copy-Item native/plugin.cpp "$template/src/live-agent.cpp"
+          $specPath = "$template/buildspec.json"
+          $spec = Get-Content $specPath -Raw | ConvertFrom-Json
+          $spec.name = 'live-agent'
+          $spec.displayName = 'Live Agent'
+          $spec.version = $env:VERSION
+          $spec.author = 'MarcSoul'
+          $spec.website = 'https://github.com/MarcSoul/live-agent-for-obs'
+          $spec | ConvertTo-Json -Depth 20 | Set-Content $specPath
+          $cmake = "$template/CMakeLists.txt"
+          (Get-Content $cmake -Raw).Replace('Widgets Core)', 'Widgets Core Network REQUIRED)').Replace('Qt6::Core Qt6::Widgets)', 'Qt6::Core Qt6::Widgets Qt6::Network)').Replace('src/plugin-main.c','src/live-agent.cpp') | Set-Content $cmake
+          Push-Location $template
+          try {
+            cmake --preset windows-x64 -DENABLE_FRONTEND_API=ON -DENABLE_QT=ON
+            if ($LASTEXITCODE -ne 0) { throw "Native dock configuration failed" }
+            cmake --build --preset windows-x64
+            if ($LASTEXITCODE -ne 0) { throw "Native dock build failed" }
+          } finally { Pop-Location }
+          $dll = Get-ChildItem "$template/build_x64" -Filter live-agent.dll -Recurse | Select-Object -First 1
+          if (-not $dll) { throw "Native dock DLL missing" }
+          Copy-Item $dll.FullName installer/live-agent.dll
       - name: Build installer
         shell: pwsh
         run: |

@@ -95,8 +95,9 @@ export const server = createServer(async (req,res) => {
     const state = await inventory(obs);
     if (req.url === '/inventory') return json(res,200,state);
     if (req.url === '/plan') {
+      if (input.visualReview === true && input.expectedPreview !== state.preview) throw new Error('El previo cambió; revisión omitida.');
       let image;
-      if (input.inspectPreview === true || (input.inspectPreview === 'auto' && state.studio && state.preview)) {
+      if (input.inspectPreview === true || (input.inspectPreview === 'auto' && state.studio && state.preview && /grafis|cortinill|r[oó]tul|tercio|cartel|encuadr|previo|solap|pantalla|diseñ|se ve|visual|overlay|look|layout|composici|revis|corrig|borde/i.test(String(input.prompt ?? '')))) {
         if (!state.studio || !state.preview) throw new Error('Activa Modo Estudio y selecciona la escena que quieres revisar en Previo.');
         const {imageData} = await obs.request('GetSourceScreenshot',{sourceName:state.preview,imageFormat:'jpeg',imageWidth:960,imageCompressionQuality:85});
         if (typeof imageData !== 'string' || !imageData.startsWith('data:image/jpeg;base64,')) throw new Error('OBS no devolvió una captura JPEG válida.');
@@ -105,7 +106,17 @@ export const server = createServer(async (req,res) => {
           throw new Error('El previo cambió durante la captura. Vuelve a revisar la escena.');
         image = imageData;
       }
-      const action = await suggest(String(input.prompt ?? ''),state,image);
+      let action;
+      let visionNotice = '';
+      try { action = await suggest(String(input.prompt ?? ''),state,image); }
+      catch (error) {
+        if (input.inspectPreview !== 'auto' || !image || !/HTTP (400|415|422)\b/.test(error.message)) throw error;
+        image = undefined;
+        visionNotice = 'El modelo no aceptó la captura. ';
+        action = await suggest(String(input.prompt ?? ''),state);
+      }
+      action.message = visionNotice + action.message;
+      if (input.visualReview === true) return json(res,200,{message:image ? action.message : 'No se pudo revisar la imagen del previo.'});
       const steps = review(action.actions,state);
       if (!steps.length) return json(res,200,{message:action.message,visualScene:image ? state.preview : undefined});
       for (const [id, plan] of plans) if (plan.expires < Date.now()) plans.delete(id);

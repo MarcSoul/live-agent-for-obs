@@ -1,8 +1,6 @@
 Live Agent para OBS Studio 33
 
-1. Inicia Live Agent desde el menú Inicio y deja su ventana abierta.
-2. En OBS, activa el servidor WebSocket en Herramientas, con el puerto 4455 y contraseña.
-3. En Paneles > Paneles de navegador personalizados, añade Live Agent con http://127.0.0.1:47831/
-4. Dentro del panel, introduce la contraseña de OBS y conecta tu cuenta de ChatGPT.
-
-El instalador incluye Node.js. OBS Studio 33 debe estar instalado por separado.
+1. Cierra cualquier ventana de Live Agent de versiones anteriores y vuelve a abrir OBS.
+2. Activa WebSocket en OBS, en el puerto 4455, con contraseña.
+3. En Herramientas > Live Agent: conexión, conecta ChatGPT e introduce la contraseña WebSocket.
+4. Abre Paneles > Live Agent y escribe una orden. Las propuestas válidas se aplican directamente.
