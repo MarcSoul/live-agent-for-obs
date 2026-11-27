@@ -1,4 +1,7 @@
 #include <obs-module.h>
+#include <windows.h>
+#include <wincred.h>
+#pragma comment(lib, "Advapi32.lib")
 #include <obs-frontend-api.h>
 #include <QAction>
 #include <QByteArray>
@@ -106,6 +109,23 @@ public:
 		secret->setEchoMode(QLineEdit::Password);
 		layout->addWidget(secret);
 		connect(secret, &QLineEdit::textChanged, this, [this](const QString &text) { password = text; });
+		connect(secret, &QLineEdit::editingFinished, settings.data(), [this, account] {
+			const auto bytes = password.toUtf8();
+			if (bytes.isEmpty()) {
+				if (!CredDeleteW(L"MarcSoul.LiveAgent.OBSWebSocket", CRED_TYPE_GENERIC, 0) && GetLastError() != ERROR_NOT_FOUND)
+					account->setText(tr("Windows no pudo borrar la contraseña guardada."));
+				return;
+			}
+			CREDENTIALW credential{};
+			wchar_t target[] = L"MarcSoul.LiveAgent.OBSWebSocket";
+			credential.Type = CRED_TYPE_GENERIC;
+			credential.TargetName = target;
+			credential.Persist = CRED_PERSIST_LOCAL_MACHINE;
+			credential.CredentialBlobSize = static_cast<DWORD>(bytes.size());
+			credential.CredentialBlob = reinterpret_cast<LPBYTE>(const_cast<char *>(bytes.constData()));
+			if (!CredWriteW(&credential, 0))
+				account->setText(tr("Windows no pudo guardar la contraseña de OBS."));
+		});
 		auto *login = new QPushButton(tr("Continuar con ChatGPT"), settings);
 		auto *logout = new QPushButton(tr("Desconectar"), settings);
 		layout->addWidget(login);
@@ -212,7 +232,14 @@ private:
 	QLineEdit *prompt;
 	QPushButton *send;
 	QPushButton *attach;
-	QString password;
+	QString password = [] {
+		PCREDENTIALW credential = nullptr;
+		if (!CredReadW(L"MarcSoul.LiveAgent.OBSWebSocket", CRED_TYPE_GENERIC, 0, &credential))
+			return QString{};
+		const auto text = QString::fromUtf8(reinterpret_cast<const char *>(credential->CredentialBlob), credential->CredentialBlobSize);
+		CredFree(credential);
+		return text;
+	}();
 	QString poster;
 	bool busy = false;
 

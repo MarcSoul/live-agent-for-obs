@@ -169,7 +169,15 @@ export const server = createServer({maxHeaderSize:128*1024}, async (req,res) => 
           if (current.collection !== state.collection || current.program !== state.program) throw new Error('Cambió la colección o Programa.');
           const [request,args] = compile(step,current);
           await obs.request(request,args);
-          if (!await verifyChange(obs,request,args)) throw new Error('OBS aceptó el paso pero no se pudo confirmar.');
+          let confirmed = false;
+          for (const delay of [0,125,250,500]) {
+            if (delay) await new Promise(resolve=>setTimeout(resolve,delay));
+            if (await verifyChange(obs,request,args)) { confirmed=true; break; }
+          }
+          if (!confirmed) {
+            const target = args.sceneName ?? args.inputName ?? '';
+            throw new Error(`OBS aceptó el paso ${completed+1} (${request}${target ? ' · '+target : ''}), pero la lectura posterior no coincidió. La orden no se volvió a ejecutar.`);
+          }
           if (request === 'SetInputSettings' && args.inputSettings.url && readGraphic(args.inputSettings.url)) {
             await obs.request('PressInputPropertiesButton',{inputName:args.inputName,propertyName:'refreshnocache'}).catch(() => {});
           }

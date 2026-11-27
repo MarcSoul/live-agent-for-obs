@@ -1,6 +1,6 @@
 import { createHash, randomBytes, randomUUID, createPublicKey, verify } from 'node:crypto';
 import { spawn } from 'node:child_process';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile, rename, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 
 const issuer = 'https://auth.openai.com';
@@ -12,6 +12,49 @@ const random = () => randomBytes(32).toString('base64url');
 let attempt, session, refreshing, loginError, model;
 let reasoning = 'default';
 const levels = ['default','none','minimal','low','medium','high','xhigh'];
+
+const sessionDir = process.platform === 'win32' && process.env.LOCALAPPDATA ? join(process.env.LOCALAPPDATA,'LiveAgent') : null;
+const sessionPath = sessionDir && join(sessionDir,'session.dpapi');
+
+function dpapi(value, decrypt = false) {
+  const method = decrypt ? 'Unprotect' : 'Protect';
+  const script = "Add-Type -AssemblyName System.Security; $b=[Convert]::FromBase64String([Console]::In.ReadToEnd()); [Console]::Write([Convert]::ToBase64String([Security.Cryptography.ProtectedData]::"+method+"($b,$null,[Security.Cryptography.DataProtectionScope]::CurrentUser)))";
+  return new Promise((resolve,reject)=>{
+    const child=spawn('powershell.exe',['-NoProfile','-NonInteractive','-Command',script],{windowsHide:true,stdio:['pipe','pipe','ignore']});
+    let output='';
+    child.stdout.setEncoding('utf8');
+    child.stdout.on('data',chunk=>output+=chunk);
+    child.on('error',reject);
+    child.stdin.on('error',reject);
+    child.on('close',code=>code===0 && output ? resolve(output) : reject(new Error('Windows no pudo proteger o recuperar la sesión.')));
+    child.stdin.end(value);
+  });
+}
+
+let writes=Promise.resolve();
+function persist(active) {
+  if (!sessionPath) return Promise.resolve();
+  const value=active && Buffer.from(JSON.stringify(active)).toString('base64');
+  const task=writes.then(async()=>{
+    if (!value) return rm(sessionPath,{force:true});
+    const encrypted=await dpapi(value);
+    await mkdir(sessionDir,{recursive:true});
+    const temp=sessionPath+'.'+randomUUID();
+    try { await writeFile(temp,encrypted); await rename(temp,sessionPath); }
+    finally { await rm(temp,{force:true}); }
+  });
+  writes=task.catch(()=>{});
+  return task;
+}
+
+if (sessionPath) {
+  try {
+    const saved=JSON.parse(Buffer.from(await dpapi(await readFile(sessionPath,'utf8'),true),'base64').toString('utf8'));
+    if (saved?.token?.refresh_token && saved.client) session=saved;
+  } catch (error) {
+    if (error.code !== 'ENOENT') loginError='No se pudo recuperar la sesión guardada. Conecta ChatGPT de nuevo.';
+  }
+}
 
 async function hostId() {
   if (!process.env.LOCALAPPDATA) throw new Error('El inicio de sesión está preparado para Windows.');
@@ -90,6 +133,7 @@ export async function callback(query) {
     const account = await identity(token.id_token,client,pending.nonce);
     if (attempt !== pending) return false;
     session = {client,account,token,expires:Date.now()+1000*token.expires_in};
+    await persist(session).catch(()=>{loginError='Cuenta conectada, pero Windows no pudo guardar la sesión.';});
     return true;
   } catch (error) { if (attempt === pending) loginError = error.message; return false; }
   finally { if (attempt === pending) attempt = undefined; }
@@ -98,6 +142,7 @@ export async function callback(query) {
 export async function disconnect() {
   const previous = session;
   session = attempt = undefined;
+  await persist(null);
   model = undefined;
   reasoning = 'default';
   if (!previous?.token.refresh_token) return;
@@ -112,10 +157,11 @@ async function access() {
   if (!active) throw new Error('Conecta tu cuenta de ChatGPT desde el panel.');
   if (active.expires > Date.now()+30000) return active.token.access_token;
   if (!refreshing) refreshing = grant({grant_type:'refresh_token',client_id:active.client,refresh_token:active.token.refresh_token})
-    .then(token => {
+    .then(async token => {
       if (session !== active || !token.access_token || (token.scope && !token.scope.split(/\s+/).includes(permission))) throw new Error('Vuelve a conectar ChatGPT.');
       active.token = {...active.token,...token};
       active.expires = Date.now()+1000*token.expires_in;
+      await persist(active).catch(()=>{loginError='Windows no pudo guardar la sesión renovada.';});
       return token.access_token;
     }).finally(() => { refreshing = undefined; });
   return refreshing;
