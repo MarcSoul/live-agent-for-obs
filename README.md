@@ -1,4 +1,4 @@
-# OBS Agent
+# Live Agent
 
 Asistente de producción para OBS Studio. Prepara escenas, comprueba fuentes y opera el directo en lenguaje natural.
 
