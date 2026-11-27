@@ -34,5 +34,4 @@ Root: HKLM; Subkey: "Software\MarcSoul\LiveAgent"; ValueType: string; ValueName:
 [Icons]
 Name: "{group}\Live Agent"; Filename: "{app}\start-windows.cmd"; WorkingDir: "{app}"
 Name: "{group}\Arranque y configuración"; Filename: "{app}\README.md"
-Name: "{userstartup}\Live Agent"; Filename: "{app}\start-windows.cmd"; WorkingDir: "{app}"; Tasks: startup
 
