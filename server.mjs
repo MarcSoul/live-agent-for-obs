@@ -140,7 +140,10 @@ export const server = createServer(async (req,res) => {
           const [request,args] = compile(step,current);
           await obs.request(request,args);
           if (!await verifyChange(obs,request,args)) throw new Error('OBS aceptó el paso pero no se pudo confirmar.');
-          if (request === 'SetInputSettings' && args.inputSettings.url && readGraphic(args.inputSettings.url)) {\n            await obs.request('PressInputPropertiesButton',{inputName:args.inputName,propertyName:'refreshnocache'}).catch(() => {});\n          }\n          completed++;
+          if (request === 'SetInputSettings' && args.inputSettings.url && readGraphic(args.inputSettings.url)) {
+            await obs.request('PressInputPropertiesButton',{inputName:args.inputName,propertyName:'refreshnocache'}).catch(() => {});
+          }
+          completed++;
         } catch (error) {
           throw new Error(`Verificados ${completed}/${plan.steps.length} pasos. Revisa el estado de OBS antes de reintentar. ${error.message}`);
         }
