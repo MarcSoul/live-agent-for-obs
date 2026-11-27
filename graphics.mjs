@@ -43,7 +43,7 @@ export function graphicSpec(raw) {
   if (!input || !types.includes(input.type) || !styles.includes(input.style)) throw new Error('Tipo o estilo de grafismo inválido.');
   const title = typeof input.title === 'string' ? input.title.trim() : '';
   const subtitle = typeof input.subtitle === 'string' ? input.subtitle.trim() : '';
-  if (!title || title.length > 120 || subtitle.length > 160) throw new Error('El grafismo necesita un título de hasta 120 caracteres y un subtítulo de hasta 160.');
+  if ((input.type !== 'countdown' && !title) || title.length > 120 || subtitle.length > 160) throw new Error('El grafismo necesita un título de hasta 120 caracteres y un subtítulo de hasta 160.');
   const seconds = input.type === 'countdown' ? input.seconds ?? 120 : 0;
   if (!Number.isInteger(seconds) || seconds < 0 || seconds > 3600) throw new Error('La cuenta atrás admite entre 0 y 3600 segundos.');
   let poster = '';
@@ -54,6 +54,8 @@ export function graphicSpec(raw) {
     poster = url.href;
   }
   return {type:input.type,style:input.style,title,subtitle,seconds,poster,
+    clock:input.type === 'countdown' && input.clock === true,
+    transparent:input.transparent === true, fadeOut:input.fadeOut === true,
     emphasis:input.emphasis === 'timer' ? 'timer' : 'balanced',
     side:input.side === 'right' ? 'right' : 'left'};
 }

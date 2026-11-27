@@ -11,6 +11,21 @@ document.body.dataset.style = spec.style;
 document.body.dataset.emphasis = spec.emphasis;
 document.body.dataset.side = spec.side;
 title.textContent = spec.title;
+title.hidden = !spec.title;
+const stage = node('.stage');
+stage.classList.toggle('transparent',spec.transparent);
+node('.eyebrow').hidden = spec.clock && !spec.title;
+let hand;
+if (spec.clock) {
+  const clock = document.createElement('div');
+  clock.className = 'clock';
+  const ticks = Array.from({length:60}, (_, i) =>
+    '<line x1="50" y1="6" x2="50" y2="'+(i%5===0 ? 13 : 9)+'" transform="rotate('+(i*6)+' 50 50)" opacity="'+(i%5===0 ? 1 : .48)+'"/>').join('');
+  clock.innerHTML = '<svg viewBox="0 0 100 100" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1">'+ticks+'<line class="hand" x1="50" y1="4" x2="50" y2="14" stroke-width="2.5"/></svg>';
+  timer.before(clock);
+  clock.append(timer);
+  hand = clock.querySelector('.hand');
+}
 subtitle.textContent = spec.subtitle;
 subtitle.hidden = !spec.subtitle;
 node('.eyebrow').textContent = spec.style === 'black-note' ? 'Black Note Club · En directo' : 'En directo';
@@ -34,7 +49,14 @@ if (spec.type === 'countdown') {
   const tick = () => {
     const left = Math.max(0,Math.ceil((end-Date.now())/1000));
     timer.textContent = [Math.floor(left/60),left%60].map(part=>String(part).padStart(2,'0')).join(':');
-    if (!left) clearInterval(interval);
+    if (hand) hand.setAttribute('transform','rotate('+((left%60)*6)+' 50 50)');
+    if (!left) {
+      clearInterval(interval);
+      if (spec.fadeOut) {
+        stage.classList.add('finished');
+        setTimeout(() => { stage.hidden = true; },1000);
+      }
+    }
   };
   const interval = setInterval(tick, 150);
   tick();

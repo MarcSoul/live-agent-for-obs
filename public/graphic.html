@@ -33,6 +33,13 @@ h1{font-size:8vmin;line-height:1.01;letter-spacing:-.045em;margin:0;overflow-wra
 [data-type="lower-third"] .subtitle{font-size:2.7vmin;margin-top:.7vmin}
 @media (max-aspect-ratio:1/1){.layout{grid-template-columns:minmax(0,1fr);gap:5vmin}.poster{grid-row:1;max-width:70vmin;max-height:42vh}[data-emphasis="timer"] .poster{max-width:55vmin;max-height:36vh}[data-type="lower-third"] .layout{width:min(95%,88vmin)}}
 @media (prefers-reduced-motion:reduce){*,*::before{animation:none!important}}
+.stage.transparent{background:transparent}
+.stage.transparent::before{display:none}
+.stage.finished{animation:expire 1s ease forwards}
+@keyframes expire{to{opacity:0}}
+.clock{position:relative;display:grid;place-items:center;width:min(54vmin,46vh);aspect-ratio:1;margin:2vmin auto;color:#fff}
+.clock svg{position:absolute;inset:0;width:100%;height:100%}
+.clock .timer{font-size:8vmin;margin:0;padding:0;border:0;color:inherit}
 </style>
 <main class="stage">
   <article class="layout no-poster">
