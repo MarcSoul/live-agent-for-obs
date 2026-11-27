@@ -1,0 +1,73 @@
+name: Windows installer
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/windows-release.yml
+      - installer/**
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: windows-installer-0.2.0
+  cancel-in-progress: false
+jobs:
+  release:
+    runs-on: windows-2022
+    env:
+      VERSION: 0.2.0
+      NODE_VERSION: 24.22.3
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Stage app and verify bundled Node
+        shell: pwsh
+        run: |
+          $base = "https://nodejs.org/dist/v$env:NODE_VERSION"
+          $runtime = "installer/payload/runtime"
+          New-Item -ItemType Directory -Force $runtime | Out-Null
+          Invoke-WebRequest "$base/SHASUMS256.txt" -OutFile "$env:RUNNER_TEMP/SHASUMS256.txt"
+          $line = Get-Content "$env:RUNNER_TEMP/SHASUMS256.txt" | Where-Object { $_ -match '  win-x64/node.exe$' }
+          if (-not $line) { throw "Node checksum missing" }
+          Invoke-WebRequest "$base/win-x64/node.exe" -OutFile "$runtime/node.exe"
+          if ((Get-FileHash "$runtime/node.exe").Hash -ine ($line -split '\s+')[0]) { throw "Node checksum mismatch" }
+          Invoke-WebRequest "$base/LICENSE" -OutFile "$runtime/LICENSE.txt"
+          Copy-Item server.mjs, obs.mjs, chatgpt.mjs, start-windows.cmd, README.md -Destination installer/payload/
+          Copy-Item public, docs -Destination installer/payload/ -Recurse
+          foreach ($file in Get-ChildItem installer/payload/*.mjs) {
+            & "$runtime/node.exe" --check $file.FullName
+            if ($LASTEXITCODE -ne 0) { throw "Invalid JavaScript in $file" }
+          }
+      - name: Build installer
+        shell: pwsh
+        run: |
+          choco install innosetup --yes --no-progress
+          if ($LASTEXITCODE -ne 0) { throw "Inno Setup install failed" }
+          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" "/DAppVersion=$env:VERSION" installer/LiveAgent.iss
+          if ($LASTEXITCODE -ne 0) { throw "Installer build failed" }
+      - name: Smoke test installed app
+        shell: pwsh
+        run: |
+          $setup = (Get-ChildItem dist/*Setup.exe).FullName
+          $target = "$env:RUNNER_TEMP\Live Agent Smoke"
+          $install = Start-Process $setup -ArgumentList @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART',"/DIR=`"$target`"") -Wait -PassThru
+          if ($install.ExitCode -ne 0) { throw "Installer returned $($install.ExitCode)" }
+          $server = Start-Process "$target/runtime/node.exe" -WorkingDirectory $target -ArgumentList server.mjs -PassThru
+          try {
+            $ready = $false
+            for ($i=0; $i -lt 20 -and -not $ready; $i++) {
+              try { $ready = (Invoke-WebRequest 'http://127.0.0.1:47831/' -TimeoutSec 2).Content -match 'Live Agent' }
+              catch { Start-Sleep -Milliseconds 500 }
+            }
+            if (-not $ready) { throw "Installed app did not serve its OBS panel" }
+          } finally {
+            Stop-Process -Id $server.Id -ErrorAction SilentlyContinue
+          }
+      - name: Publish prerelease
+        shell: pwsh
+        run: |
+          $setup = Get-ChildItem dist/*Setup.exe
+          $hashFile = "$($setup.FullName).sha256"
+          "$((Get-FileHash $setup.FullName).Hash.ToLowerInvariant())  $($setup.Name)" | Set-Content $hashFile -Encoding ascii
+          gh release create "v$env:VERSION" $setup.FullName $hashFile --target "$env:GITHUB_SHA" --prerelease --title "Live Agent $env:VERSION para Windows" --notes-file installer/release-notes.md
+          if ($LASTEXITCODE -ne 0) { throw "GitHub release failed" }
