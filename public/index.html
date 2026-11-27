@@ -13,7 +13,9 @@
 <p id="account" role="status"></p>
 <pre id="chat" aria-live="polite"></pre>
 <label>Orden o consulta<textarea id="prompt" rows="3" placeholder="Pon la escena Entrevista en previo"></textarea></label>
-<button id="plan">Consultar</button><button id="apply" disabled>Aplicar propuesta</button>
+<button id="plan">Consultar</button><button id="inspect">Revisar previo con imagen</button>
+<small>La revisión envía una captura del previo a ChatGPT.</small>
+<button id="apply" disabled>Aplicar propuesta</button>
 <p id="status" role="status"></p>
 <pre id="details"></pre>
 <script>
@@ -35,7 +37,7 @@ async function run(route, data) {
     if (!response.ok) throw new Error(result.error);
     planId = result.id;
     if (route === 'plan') field('chat').textContent += 'Tú: '+data.prompt+'\nLive Agent: '+result.message+'\n\n';
-    field('status').textContent = result.message ?? 'Escenas leídas.';
+    field('status').textContent = result.visualScene ? 'Captura revisada: '+result.visualScene : result.message ?? 'Escenas leídas.';
     const details = result.steps?.map(step => Object.fromEntries(Object.entries(step).filter(([,value]) => value !== null))) ?? result.state ?? (route === 'inventory' ? result : undefined);
     if (details) field('details').textContent = JSON.stringify(details,null,2);
   } catch (error) {
@@ -46,11 +48,16 @@ async function run(route, data) {
     field('logout').disabled = false;
     field('inventory').disabled = false;
     field('plan').disabled = false;
+    field('inspect').disabled = false;
     field('apply').disabled = !planId;
   }
 }
 field('inventory').onclick = () => run('inventory',{});
 field('plan').onclick = () => run('plan',{prompt:field('prompt').value});
+field('inspect').onclick = () => run('plan', {
+  prompt: field('prompt').value.trim() || 'Revisa el grafismo del previo. Señala solapes, recortes y problemas de lectura y propón correcciones posibles.',
+  inspectPreview:true
+});
 field('apply').onclick = () => planId && run('apply',{id:planId});
 async function auth(route) {
   const response = await fetch('/auth/'+route,{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});

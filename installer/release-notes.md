@@ -1,3 +1,5 @@
+Novedad: revisión visual del previo con una captura de OBS y propuestas de corrección.
+
 Novedades: creación de escenas, reutilización de cámaras y audio, fuentes de texto, color e imagen, posición y escala, y planes de varios pasos revisables.
 
 Prelanzamiento para **Windows x64** y **OBS Studio 33**. El instalador incluye el runtime Node.js y no requiere privilegios de administrador. OBS se instala por separado.
