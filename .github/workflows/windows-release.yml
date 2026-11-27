@@ -9,13 +9,13 @@ on:
 permissions:
   contents: write
 concurrency:
-  group: windows-installer-0.5.0
+  group: windows-installer-0.5.1
   cancel-in-progress: false
 jobs:
   release:
     runs-on: windows-2022
     env:
-      VERSION: 0.5.0
+      VERSION: 0.5.1
       NODE_VERSION: 24.22.3
       GH_TOKEN: ${{ github.token }}
     steps:

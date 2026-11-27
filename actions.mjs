@@ -34,7 +34,9 @@ export function compile(action,state) {
     const spec = kind === 'graphic' ? graphicSpec(value) : input.graphic.previous;
     const width = state.canvas?.width, height = state.canvas?.height;
     if (![width,height].every(n => Number.isInteger(n) && n >= 16 && n <= 8192)) fail('El tamaño de lienzo no es compatible.');
-    const inputSettings = {url:graphicUrl(spec,input?.graphic?.spec),width,height,is_local_file:false,shutdown:false,restart_when_active:false};
+    const url = new URL(graphicUrl(spec,input?.graphic?.spec));
+    if (action.revision) url.searchParams.set('revision',action.revision);
+    const inputSettings = {url:url.href,width,height,is_local_file:false,shutdown:false,restart_when_active:false};
     if (input) return ['SetInputSettings',{inputName:source,inputSettings,overlay:true}];
     return ['CreateInput',{...args,inputName:source,inputKind:'browser_source',inputSettings,sceneItemEnabled:true}];
   }
