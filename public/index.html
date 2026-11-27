@@ -9,7 +9,9 @@
 <h1>Live Agent</h1>
 <label>Contraseña WebSocket de OBS<input id="password" type="password" autocomplete="off"></label>
 <button id="inventory">Leer escenas</button>
-<label>Clave de API de OpenAI<input id="apiKey" type="password" autocomplete="off"></label>
+<button id="login">Continuar con ChatGPT</button><button id="logout" hidden>Desconectar</button>
+<p id="account" role="status"></p>
+<pre id="chat" aria-live="polite"></pre>
 <label>Orden o consulta<textarea id="prompt" rows="3" placeholder="Pon la escena Entrevista en previo"></textarea></label>
 <button id="plan">Consultar</button><button id="apply" disabled>Aplicar propuesta</button>
 <p id="status" role="status"></p>
@@ -32,6 +34,7 @@ async function run(route, data) {
     const result = await response.json();
     if (!response.ok) throw new Error(result.error);
     planId = result.id;
+    if (route === 'plan') field('chat').textContent += 'Tú: '+data.prompt+'\nLive Agent: '+result.message+'\n\n';
     field('status').textContent = result.message ?? 'Escenas leídas.';
     const details = result.request ? {operación:result.request,parámetros:result.args} : result.state ?? (route === 'inventory' ? result : undefined);
     if (details) field('details').textContent = JSON.stringify(details,null,2);
@@ -39,12 +42,40 @@ async function run(route, data) {
     field('status').textContent = error.message;
   } finally {
     busy = false;
+    field('login').disabled = false;
+    field('logout').disabled = false;
     field('inventory').disabled = false;
     field('plan').disabled = false;
     field('apply').disabled = !planId;
   }
 }
 field('inventory').onclick = () => run('inventory',{});
-field('plan').onclick = () => run('plan',{prompt:field('prompt').value,apiKey:field('apiKey').value});
+field('plan').onclick = () => run('plan',{prompt:field('prompt').value});
 field('apply').onclick = () => planId && run('apply',{id:planId});
+async function auth(route) {
+  const response = await fetch('/auth/'+route,{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});
+  const state = await response.json();
+  if (response.ok) {
+    field('login').hidden = state.connected;
+    field('logout').hidden = !state.connected;
+  }
+  field('account').textContent = state.error ?? (state.connected ? 'ChatGPT: '+state.account :
+    state.pending ? 'Autoriza la cuenta en el navegador y vuelve a OBS.' : 'ChatGPT sin conectar');
+}
+field('login').onclick = () => auth('start').catch(showError);
+field('logout').onclick = async () => {
+  planId = undefined;
+  field('apply').disabled = true;
+  field('chat').textContent = '';
+  await auth('logout').catch(showError);
+};
+function showError(error) {field('account').textContent = error.message;}
+field('prompt').onkeydown = event => {
+  if (event.key === 'Enter' && !event.shiftKey && !event.isComposing) {
+    event.preventDefault();
+    field('plan').click();
+  }
+};
+auth('status').catch(showError);
+setInterval(() => auth('status').catch(showError),2500);
 </script>
